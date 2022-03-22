@@ -7,6 +7,6 @@ DO THIS FIRST: `yarn install`
 
 ### Deploy 
 
-Step 1: ```graph auth --product hosted-service <ACCESS_TOKEN>```
+```graph auth --product hosted-service <ACCESS_TOKEN>```
 
-Step 2 ```graph deploy --product hosted-service <GITHUB_USER>/<SUBGRAPH NAME>```
+```graph deploy --product hosted-service <GITHUB_USER>/<SUBGRAPH NAME>```
