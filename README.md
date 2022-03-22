@@ -5,7 +5,7 @@ DO THIS FIRST: `yarn install`
 
 
 
-### Deploy 
+### Deploy Instructions
 
 ```graph auth --product hosted-service <ACCESS_TOKEN>```
 
