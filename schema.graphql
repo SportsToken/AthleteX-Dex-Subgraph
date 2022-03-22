@@ -1,6 +1,54 @@
-type ExampleEntity @entity {
+# auto generated example
+# type ExampleEntity @entity {
+#   id: ID!
+#   count: BigInt!
+#   token0: Bytes! # address
+#   token1: Bytes! # address
+# }
+
+
+
+# Factory
+type Factory @entity {
+  # Contract address
   id: ID!
-  count: BigInt!
-  token0: Bytes! # address
-  token1: Bytes! # address
+
+  # Pair count
+  pairCount: BigInt!
+
+  # Volume USD
+  volumeUSD: BigDecimal!
+
+  # Volume ETH
+  volumeETH: BigDecimal!
+
+  # Untracked volume
+  untrackedVolumeUSD: BigDecimal!
+
+  # Liquidity USD
+  liquidityUSD: BigDecimal!
+
+  # Liquidity ETH
+  liquidityETH: BigDecimal!
+
+  # Transaction count
+  txCount: BigInt!
+
+  # Token count
+  tokenCount: BigInt!
+
+  # User count
+  userCount: BigInt!
+
+  # Pairs
+  pairs: [Pair!]! @derivedFrom(field: "factory")
+
+  # Tokens
+  tokens: [Token!]! @derivedFrom(field: "factory")
+
+  # Hour data
+  hourData: [HourData!]! @derivedFrom(field: "factory")
+
+  # Day data
+  dayData: [DayData!]! @derivedFrom(field: "factory")
 }

@@ -1,8 +1,10 @@
 specVersion: 0.0.2
+description: AthleteX-Dex-Mumbai
+repository: https://github.com/SportsToken/AthleteX-Dex-Subgraph
 schema:
   file: ./schema.graphql
 dataSources:
-  - kind: ethereum
+  - kind: ethereum/contract
     name: AthleteXFactory
     network: mumbai
     source:
