@@ -1,0 +1,16 @@
+{
+  "name": "AthleteX-Dex-Subgraph",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ SportsToken/AthleteX-Dex-Subgraph",
+    "create-local": "graph create --node http://localhost:8020/ SportsToken/AthleteX-Dex-Subgraph",
+    "remove-local": "graph remove --node http://localhost:8020/ SportsToken/AthleteX-Dex-Subgraph",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 SportsToken/AthleteX-Dex-Subgraph"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.28.1",
+    "@graphprotocol/graph-ts": "0.26.0"
+  }
+}

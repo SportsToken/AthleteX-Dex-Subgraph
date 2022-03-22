@@ -1,0 +1,23 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: AthleteXFactory
+    network: mumbai
+    source:
+      address: "0xf8b31f42ea08e82e6d1f0cf3083905bd57d69603"
+      abi: AthleteXFactory
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - PairCreated
+      abis:
+        - name: AthleteXFactory
+          file: ./abis/AthleteXFactory.json
+      eventHandlers:
+        - event: PairCreated(indexed address,indexed address,address,uint256)
+          handler: handlePairCreated
+      file: ./src/mapping.ts
