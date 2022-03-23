@@ -1,5 +1,5 @@
 specVersion: 0.0.2
-description: AthleteX-Dex-Mumbai
+description: AthleteX-Dex-Mumbai is a decentralized exchange for swapping between apts and Matic tokens assets on Avalanche.
 repository: https://github.com/SportsToken/AthleteX-Dex-Subgraph
 schema:
   file: ./schema.graphql
@@ -10,16 +10,54 @@ dataSources:
     source:
       address: "0xf8b31f42ea08e82e6d1f0cf3083905bd57d69603"
       abi: AthleteXFactory
+      startBlock: 56877
+
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.5
       language: wasm/assemblyscript
+      file: ./src/mappings/factory.ts
       entities:
-        - PairCreated
+        - Pair
+        - Token
       abis:
-        - name: AthleteXFactory
+        - name: Factory
           file: ./abis/AthleteXFactory.json
+        - name: ERC20
+          file: ./abis/AthleteXERC20.json
+        - name: ERC20SymbolBytes
+          file: ./abis/ERC20SymbolBytes.json
+        - name: ERC20NameBytes
+          file: ./abis/ERC20NameBytes.json
       eventHandlers:
         - event: PairCreated(indexed address,indexed address,address,uint256)
-          handler: handlePairCreated
-      file: ./src/mapping.ts
+          handler: handleNewPair
+templates:
+  - kind: ethereum/contract
+  name: Pair
+  network: mumbai
+  source:
+    abi: Pair
+  mapping:
+    kind: ethereum/events
+    apiVersion: 0.0.5
+    language: wasm/assemblyscript
+    file: ./src/mappings/core.ts
+    entities:
+        - Pair
+        - Token
+      abis:
+        - name: Pair
+          file: ./abis/AthleteXPair.json
+        - name: Factory
+          file: ./abis/AthleteXFactory.json
+      eventHandlers:
+        - event: Mint(indexed address,uint256,uint256)
+          handler: handleMint
+        - event: Burn(indexed address,uint256,uint256,indexed address)
+          handler: handleBurn
+        - event: Swap(indexed address,uint256,uint256,uint256,uint256,indexed address)
+          handler: handleSwap
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: Sync(uint112,uint112)
