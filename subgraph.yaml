@@ -21,9 +21,9 @@ dataSources:
         - Pair
         - Token
       abis:
-        - name: Factory
+        - name: AthleteXFactory
           file: ./abis/AthleteXFactory.json
-        - name: ERC20
+        - name: AthleteXERC20
           file: ./abis/AthleteXERC20.json
         - name: ERC20SymbolBytes
           file: ./abis/ERC20SymbolBytes.json
@@ -34,22 +34,22 @@ dataSources:
           handler: handleNewPair
 templates:
   - kind: ethereum/contract
-  name: Pair
-  network: mumbai
-  source:
-    abi: Pair
-  mapping:
-    kind: ethereum/events
-    apiVersion: 0.0.5
-    language: wasm/assemblyscript
-    file: ./src/mappings/core.ts
-    entities:
+    name: AthleteXPair
+    network: mumbai
+    source:
+      abi: AthleteXPair
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/mappings/core.ts
+      entities:
         - Pair
         - Token
       abis:
-        - name: Pair
+        - name: AthleteXPair
           file: ./abis/AthleteXPair.json
-        - name: Factory
+        - name: AthleteXFactory
           file: ./abis/AthleteXFactory.json
       eventHandlers:
         - event: Mint(indexed address,uint256,uint256)
@@ -61,3 +61,4 @@ templates:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
         - event: Sync(uint112,uint112)
+          handler: handleSync
