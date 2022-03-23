@@ -44,8 +44,17 @@ templates:
       language: wasm/assemblyscript
       file: ./src/mappings/core.ts
       entities:
+        - Bundle
+        - Burn
+        - LiquidityPosition
+        - LiquidityPositionSnapshot
+        - Mint
         - Pair
+        - Swap
+        - Sync
         - Token
+        - Transaction
+        - User
       abis:
         - name: AthleteXPair
           file: ./abis/AthleteXPair.json
