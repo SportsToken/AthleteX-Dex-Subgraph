@@ -1,4 +1,4 @@
-type PangolinFactory @entity {
+type Factory @entity {
   # factory address
   id: ID!
 
