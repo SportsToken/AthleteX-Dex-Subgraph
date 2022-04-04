@@ -7,9 +7,12 @@
 
 import { log } from '@graphprotocol/graph-ts'
 import { 
-  AthleteXFactory,
-  PairCreated
- } from  "../../generated/AthleteXFactory/AthleteXFactory"
+  Factory,
+ } from  "../../generated/schema"
+import {
+  PairCreated,
+} from "../../generated/AthleteXFactory/AthleteXFactory"
+import { Bundle, Pair, Token } from '../../generated/schema'
 //import { AthleteXFactory, Pair, Token, Bundle } from '../types/schema'
 //import { PairCreated } from '../types/Factory/Factory'
 import { AthleteXPair as PairTemplate } from '../../generated/templates'
@@ -21,13 +24,13 @@ import {
   fetchTokenName,
   fetchTokenDecimals,
   fetchTokenTotalSupply
-} from './helpers'
+} from './helper'
 
 export function handleNewPair(event: PairCreated): void {
   // load factory (create if first exchange)
-  let factory = AthleteXFactory.load(FACTORY_ADDRESS)
+  let factory = Factory.load(FACTORY_ADDRESS)
   if (factory === null) {
-    factory = new AthleteXFactory(FACTORY_ADDRESS)
+    factory = new Factory(FACTORY_ADDRESS)
     factory.pairCount = 0
     factory.totalVolumeETH = ZERO_BD
     factory.totalLiquidityETH = ZERO_BD
