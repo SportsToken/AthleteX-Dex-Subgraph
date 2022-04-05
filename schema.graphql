@@ -1,4 +1,5 @@
 type AthleteXFactory @entity {
+  # factory address
   id: ID!
 
   "Total of pairs"
@@ -35,6 +36,9 @@ type Token @entity {
   symbol: String!
   "Decimals"
   decimals: BigInt!
+
+  # used for other stats like marketcap
+  totalSupply: BigInt!
 
   # token specific volume
   tradeVolume: BigDecimal!
@@ -90,7 +94,10 @@ type Pair @entity {
   timestamp: BigInt!
 
   # derived fields
+  liquidityProviderCount: BigInt! # used to detect new exchanges
   pairHourData: [PairHourData!]! @derivedFrom(field: "pair")
+  liquidityPositions: [LiquidityPosition!]! @derivedFrom(field: "pair")
+  liquidityPositionSnapshots: [LiquidityPositionSnapshot!]! @derivedFrom(field: "pair")
   mints: [Mint!]! @derivedFrom(field: "pair")
   burns: [Burn!]! @derivedFrom(field: "pair")
   swaps: [Swap!]! @derivedFrom(field: "pair")
@@ -180,7 +187,7 @@ type Swap @entity {
   amountUSD: BigDecimal!
 }
 
-type PancakeDayData @entity {
+type AthleteXDayData @entity {
   id: ID! # timestamp rounded to current day by dividing by 86400
   date: Int!
 
@@ -263,4 +270,34 @@ type TokenDayData @entity {
 
   # price stats
   priceUSD: BigDecimal!
+}
+
+type User @entity {
+  id: ID!
+  liquidityPositions: [LiquidityPosition!] @derivedFrom(field: "user")
+  usdSwapped: BigDecimal!
+}
+
+type LiquidityPosition @entity {
+  id: ID!
+  user: User!
+  pair: Pair!
+  liquidityTokenBalance: BigDecimal!
+}
+
+# saved over time for return calculations, gets created and never updated
+type LiquidityPositionSnapshot @entity {
+  id: ID!
+  liquidityPosition: LiquidityPosition!
+  timestamp: Int! # saved for fast historical lookups
+  block: Int! # saved for fast historical lookups
+  user: User! # reference to user
+  pair: Pair! # reference to pair
+  token0PriceUSD: BigDecimal! # snapshot of token0 price
+  token1PriceUSD: BigDecimal! # snapshot of token1 price
+  reserve0: BigDecimal! # snapshot of pair token0 reserves
+  reserve1: BigDecimal! # snapshot of pair token1 reserves
+  reserveUSD: BigDecimal! # snapshot of pair reserves in USD
+  liquidityTokenTotalSupply: BigDecimal! # snapshot of pool token supply
+  liquidityTokenBalance: BigDecimal! # snapshot of users pool token balance
 }
