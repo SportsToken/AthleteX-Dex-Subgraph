@@ -1,15 +1,30 @@
-# [AthleteX-Dex-Subgraph](https://thegraph.com/hosted-service/subgraph/nyamwaya/athlete-x-dex-mumbai)
-AX DEX Mumbai is a subgraph of a uniswap v2 dex
+# ATHLETEX Subgraph
 
-DO THIS FIRST: `yarn install`
+TheGraph exposes a GraphQL endpoint to query the events and entities within the Athletex ecosystem.
 
-### Deploy Instructions
+Currently, there are multiple subgraphs, but additional subgraphs can be added to this repository, following the current architecture.
 
-```graph auth --product hosted-service <ACCESS_TOKEN>```
+## Subgraphs
 
-```graph deploy --product hosted-service <GITHUB_USER>/<SUBGRAPH NAME>```
+2. **[Exchange]()**: Tracks all AThletex Exchange data with price, volume, liquidity, ...
 
-DOCS: 
-subgraph.yaml - describes the data sources your subgraph will index
-schema.graphql - These entities indicate what data is stored for this subgraph and how to query it.
+## Dependencies
 
+- [Graph CLI](https://github.com/graphprotocol/graph-cli)
+  - Required to generate and build local GraphQL dependencies.
+
+```shell
+yarn global add @graphprotocol/graph-cli
+```
+
+## Deployment
+
+1. Run the `yarn codegen` command to prepare the TypeScript sources for the GraphQL (generated/\*).
+
+2. Run the `yarn build` command to build the subgraph, and check compilation errors before deploying.
+
+3. Run `graph auth --product hosted-service '<ACCESS_TOKEN>'`
+
+4. Deploy via `yarn deploy`.
+
+5. Or run `yarn deploy <ACCESS_TOKEN>`
