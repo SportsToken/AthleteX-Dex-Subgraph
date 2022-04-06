@@ -93,6 +93,7 @@ export function handlePairCreated(event: PairCreated): void {
   pair.token1Price = ZERO_BD;
   pair.block = event.block.number;
   pair.timestamp = event.block.timestamp;
+  pair.liquidityProviderCount = ZERO_BI;
   pair.save();
 
   PairTemplate.create(event.params.pair);
