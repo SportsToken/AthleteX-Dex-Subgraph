@@ -8,7 +8,7 @@ import { Factory as FactoryContract } from "../../generated/templates/Pair/Facto
 import { User, Bundle, Token, LiquidityPosition, LiquidityPositionSnapshot, Pair } from "../../generated/schema";
 
 export let ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
-export let FACTORY_ADDRESS = "0x778ef52b9c18dbcbc6b4a8a58b424ea6cea5a551";
+export let FACTORY_ADDRESS = "0x8720dccfcd5687afae5f0bfb56ff664e6d8b385b";
 
 export let ZERO_BI = BigInt.fromI32(0);
 export let ONE_BI = BigInt.fromI32(1);
