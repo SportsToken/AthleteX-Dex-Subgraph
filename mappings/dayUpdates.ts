@@ -1,31 +1,31 @@
 /* eslint-disable prefer-const */
 import { PairHourData } from "../generated/schema";
 import { BigInt, BigDecimal, ethereum } from "@graphprotocol/graph-ts";
-import { Pair, Bundle, Token, AthleteXFactory, PancakeDayData, PairDayData, TokenDayData } from "../generated/schema";
+import { Pair, Bundle, Token, AthleteXFactory, AthleteXDayData, PairDayData, TokenDayData } from "../generated/schema";
 import { ONE_BI, ZERO_BD, ZERO_BI, FACTORY_ADDRESS } from "./utils";
 
-export function updatePancakeDayData(event: ethereum.Event): PancakeDayData {
-  let pancake = AthleteXFactory.load(FACTORY_ADDRESS);
+export function updateAthleteXDayData(event: ethereum.Event): AthleteXDayData {
+  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
   let timestamp = event.block.timestamp.toI32();
   let dayID = timestamp / 86400;
   let dayStartTimestamp = dayID * 86400;
 
-  let pancakeDayData = PancakeDayData.load(dayID.toString());
-  if (pancakeDayData === null) {
-    pancakeDayData = new PancakeDayData(dayID.toString());
-    pancakeDayData.date = dayStartTimestamp;
-    pancakeDayData.dailyVolumeUSD = ZERO_BD;
-    pancakeDayData.dailyVolumeMATIC = ZERO_BD;
-    pancakeDayData.totalVolumeUSD = ZERO_BD;
-    pancakeDayData.totalVolumeMATIC = ZERO_BD;
-    pancakeDayData.dailyVolumeUntracked = ZERO_BD;
+  let athleteXDayData = AthleteXDayData.load(dayID.toString());
+  if (athleteXDayData === null) {
+    athleteXDayData = new AthleteXDayData(dayID.toString());
+    athleteXDayData.date = dayStartTimestamp;
+    athleteXDayData.dailyVolumeUSD = ZERO_BD;
+    athleteXDayData.dailyVolumeMATIC = ZERO_BD;
+    athleteXDayData.totalVolumeUSD = ZERO_BD;
+    athleteXDayData.totalVolumeMATIC = ZERO_BD;
+    athleteXDayData.dailyVolumeUntracked = ZERO_BD;
   }
-  pancakeDayData.totalLiquidityUSD = pancake.totalLiquidityUSD;
-  pancakeDayData.totalLiquidityMATIC = pancake.totalLiquidityMATIC;
-  pancakeDayData.totalTransactions = pancake.totalTransactions;
-  pancakeDayData.save();
+  athleteXDayData.totalLiquidityUSD = athleteX.totalLiquidityUSD;
+  athleteXDayData.totalLiquidityMATIC = athleteX.totalLiquidityMATIC;
+  athleteXDayData.totalTransactions = athleteX.totalTransactions;
+  athleteXDayData.save();
 
-  return pancakeDayData as PancakeDayData;
+  return athleteXDayData as AthleteXDayData;
 }
 
 export function updatePairDayData(event: ethereum.Event): PairDayData {

@@ -10,6 +10,7 @@ import {
   fetchTokenSymbol,
   fetchTokenName,
   fetchTokenDecimals,
+  fetchTokenTotalSupply,
 } from "./utils";
 
 export function handlePairCreated(event: PairCreated): void {
@@ -37,6 +38,7 @@ export function handlePairCreated(event: PairCreated): void {
     token0.name = fetchTokenName(event.params.token0);
     token0.symbol = fetchTokenSymbol(event.params.token0);
     let decimals = fetchTokenDecimals(event.params.token0);
+    token0.totalSupply = fetchTokenTotalSupply(event.params.token0);
     if (decimals === null) {
       return;
     }
@@ -57,6 +59,7 @@ export function handlePairCreated(event: PairCreated): void {
     token1.name = fetchTokenName(event.params.token1);
     token1.symbol = fetchTokenSymbol(event.params.token1);
     let decimals = fetchTokenDecimals(event.params.token1);
+    token1.totalSupply = fetchTokenTotalSupply(event.params.token1);
     if (decimals === null) {
       return;
     }

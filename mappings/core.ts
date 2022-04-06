@@ -1,5 +1,5 @@
 /* eslint-disable prefer-const */
-import { BigInt, BigDecimal, store } from "@graphprotocol/graph-ts";
+import { BigInt, BigDecimal, store, Address } from "@graphprotocol/graph-ts";
 import {
   Pair,
   Token,
@@ -11,19 +11,46 @@ import {
   Bundle,
 } from "../generated/schema";
 import { Mint, Burn, Swap, Transfer, Sync } from "../generated/templates/Pair/Pair";
-import { updatePairDayData, updateTokenDayData, updatePancakeDayData, updatePairHourData } from "./dayUpdates";
+import { updatePairDayData, updateTokenDayData, updateAthleteXDayData, updatePairHourData } from "./dayUpdates";
 import { getMaticPriceInUSD, findMaticPerToken, getTrackedVolumeUSD, getTrackedLiquidityUSD } from "./pricing";
-import { convertTokenToDecimal, ADDRESS_ZERO, FACTORY_ADDRESS, ONE_BI, ZERO_BD, BI_18 } from "./utils";
+import {
+  convertTokenToDecimal,
+  ADDRESS_ZERO,
+  FACTORY_ADDRESS,
+  ONE_BI,
+  createUser,
+  createLiquidityPosition,
+  ZERO_BD,
+  BI_18,
+  createLiquiditySnapshot,
+} from "./utils";
+
+let MINING_POOLS: string[] = [];
 
 function isCompleteMint(mintId: string): boolean {
   return MintEvent.load(mintId).sender !== null; // sufficient checks
 }
 
 export function handleTransfer(event: Transfer): void {
-  // Initial liquidity.
-  if (event.params.to.toHex() == ADDRESS_ZERO && event.params.value.equals(BigInt.fromI32(1000))) {
+  let eventToAsHexString = event.params.to.toHex();
+  let eventFromAsHexString = event.params.from.toHex();
+  let eventHashAsHexString = event.transaction.hash.toHex();
+
+  // ignore initial transfers for first adds
+  if (eventToAsHexString == ADDRESS_ZERO && event.params.value.equals(BigInt.fromI32(1000))) {
     return;
   }
+
+  // skip if staking/unstaking
+  if (MINING_POOLS.includes(eventFromAsHexString) || MINING_POOLS.includes(eventToAsHexString)) {
+    return;
+  }
+
+  // user stats
+  let from = event.params.from;
+  createUser(from);
+  let to = event.params.to;
+  createUser(to);
 
   // get pair and load contract
   let pair = Pair.load(event.address.toHex());
@@ -32,9 +59,9 @@ export function handleTransfer(event: Transfer): void {
   let value = convertTokenToDecimal(event.params.value, BI_18);
 
   // get or create transaction
-  let transaction = Transaction.load(event.transaction.hash.toHex());
+  let transaction = Transaction.load(eventHashAsHexString);
   if (transaction === null) {
-    transaction = new Transaction(event.transaction.hash.toHex());
+    transaction = new Transaction(eventHashAsHexString);
     transaction.block = event.block.number;
     transaction.timestamp = event.block.timestamp;
     transaction.mints = [];
@@ -51,9 +78,7 @@ export function handleTransfer(event: Transfer): void {
 
     // create new mint if no mints so far or if last one is done already
     if (mints.length === 0 || isCompleteMint(mints[mints.length - 1])) {
-      let mint = new MintEvent(
-        event.transaction.hash.toHex().concat("-").concat(BigInt.fromI32(mints.length).toString())
-      );
+      let mint = new MintEvent(eventHashAsHexString.concat("-").concat(BigInt.fromI32(mints.length).toString()));
       mint.transaction = transaction.id;
       mint.pair = pair.id;
       mint.to = event.params.to;
@@ -67,15 +92,24 @@ export function handleTransfer(event: Transfer): void {
 
       // save entities
       transaction.save();
+    } else {
+      // if this logical mint included a fee mint, account for this
+      let mint = MintEvent.load(mints[mints.length - 1]);
+      mint.feeTo = mint.to;
+      mint.to = to;
+      mint.feeLiquidity = mint.liquidity;
+      mint.liquidity = value;
+      mint.save();
+
+      // save entities
+      transaction.save();
     }
   }
 
   // case where direct send first on MATIC withdrawals
-  if (event.params.to.toHex() == pair.id) {
+  if (eventToAsHexString == pair.id) {
     let burns = transaction.burns;
-    let burn = new BurnEvent(
-      event.transaction.hash.toHex().concat("-").concat(BigInt.fromI32(burns.length).toString())
-    );
+    let burn = new BurnEvent(eventHashAsHexString.concat("-").concat(BigInt.fromI32(burns.length).toString()));
     burn.transaction = transaction.id;
     burn.pair = pair.id;
     burn.liquidity = value;
@@ -158,6 +192,24 @@ export function handleTransfer(event: Transfer): void {
     transaction.save();
   }
 
+  if (eventFromAsHexString != ADDRESS_ZERO && eventFromAsHexString != pair.id) {
+    let fromUserLiquidityPosition = createLiquidityPosition(event.address, from);
+    fromUserLiquidityPosition.liquidityTokenBalance = fromUserLiquidityPosition.liquidityTokenBalance.minus(
+      convertTokenToDecimal(event.params.value, BI_18)
+    );
+    fromUserLiquidityPosition.save();
+    createLiquiditySnapshot(fromUserLiquidityPosition, event);
+  }
+
+  if (eventToAsHexString != ADDRESS_ZERO && eventToAsHexString != pair.id) {
+    let toUserLiquidityPosition = createLiquidityPosition(event.address, to);
+    toUserLiquidityPosition.liquidityTokenBalance = toUserLiquidityPosition.liquidityTokenBalance.plus(
+      convertTokenToDecimal(event.params.value, BI_18)
+    );
+    toUserLiquidityPosition.save();
+    createLiquiditySnapshot(toUserLiquidityPosition, event);
+  }
+
   transaction.save();
 }
 
@@ -165,10 +217,10 @@ export function handleSync(event: Sync): void {
   let pair = Pair.load(event.address.toHex());
   let token0 = Token.load(pair.token0);
   let token1 = Token.load(pair.token1);
-  let pancake = AthleteXFactory.load(FACTORY_ADDRESS);
+  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
 
   // reset factory liquidity by subtracting only tracked liquidity
-  pancake.totalLiquidityMATIC = pancake.totalLiquidityMATIC.minus(pair.trackedReserveMATIC as BigDecimal);
+  athleteX.totalLiquidityMATIC = athleteX.totalLiquidityMATIC.minus(pair.trackedReserveMATIC as BigDecimal);
 
   // reset token total liquidity amounts
   token0.totalLiquidity = token0.totalLiquidity.minus(pair.reserve0);
@@ -218,8 +270,8 @@ export function handleSync(event: Sync): void {
   pair.reserveUSD = pair.reserveMATIC.times(bundle.maticPrice);
 
   // use tracked amounts globally
-  pancake.totalLiquidityMATIC = pancake.totalLiquidityMATIC.plus(trackedLiquidityMATIC);
-  pancake.totalLiquidityUSD = pancake.totalLiquidityMATIC.times(bundle.maticPrice);
+  athleteX.totalLiquidityMATIC = athleteX.totalLiquidityMATIC.plus(trackedLiquidityMATIC);
+  athleteX.totalLiquidityUSD = athleteX.totalLiquidityMATIC.times(bundle.maticPrice);
 
   // now correctly set liquidity amounts for each token
   token0.totalLiquidity = token0.totalLiquidity.plus(pair.reserve0);
@@ -227,7 +279,7 @@ export function handleSync(event: Sync): void {
 
   // save entities
   pair.save();
-  pancake.save();
+  athleteX.save();
   token0.save();
   token1.save();
 }
@@ -238,7 +290,7 @@ export function handleMint(event: Mint): void {
   let mint = MintEvent.load(mints[mints.length - 1]);
 
   let pair = Pair.load(event.address.toHex());
-  let pancake = AthleteXFactory.load(FACTORY_ADDRESS);
+  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
 
   let token0 = Token.load(pair.token0);
   let token1 = Token.load(pair.token1);
@@ -260,13 +312,13 @@ export function handleMint(event: Mint): void {
 
   // update txn counts
   pair.totalTransactions = pair.totalTransactions.plus(ONE_BI);
-  pancake.totalTransactions = pancake.totalTransactions.plus(ONE_BI);
+  athleteX.totalTransactions = athleteX.totalTransactions.plus(ONE_BI);
 
   // save entities
   token0.save();
   token1.save();
   pair.save();
-  pancake.save();
+  athleteX.save();
 
   mint.sender = event.params.sender;
   mint.amount0 = token0Amount as BigDecimal;
@@ -275,9 +327,13 @@ export function handleMint(event: Mint): void {
   mint.amountUSD = amountTotalUSD as BigDecimal;
   mint.save();
 
+  // update the LP position
+  let liquidityPosition = createLiquidityPosition(event.address, mint.to as Address);
+  createLiquiditySnapshot(liquidityPosition, event);
+
   updatePairDayData(event);
   updatePairHourData(event);
-  updatePancakeDayData(event);
+  updateAthleteXDayData(event);
   updateTokenDayData(token0 as Token, event);
   updateTokenDayData(token1 as Token, event);
 }
@@ -292,7 +348,7 @@ export function handleBurn(event: Burn): void {
   let burn = BurnEvent.load(burns[burns.length - 1]);
 
   let pair = Pair.load(event.address.toHex());
-  let pancake = AthleteXFactory.load(FACTORY_ADDRESS);
+  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
 
   //update token info
   let token0 = Token.load(pair.token0);
@@ -312,14 +368,14 @@ export function handleBurn(event: Burn): void {
     .times(bundle.maticPrice);
 
   // update txn counts
-  pancake.totalTransactions = pancake.totalTransactions.plus(ONE_BI);
+  athleteX.totalTransactions = athleteX.totalTransactions.plus(ONE_BI);
   pair.totalTransactions = pair.totalTransactions.plus(ONE_BI);
 
   // update global counter and save
   token0.save();
   token1.save();
   pair.save();
-  pancake.save();
+  athleteX.save();
 
   // update burn
   // burn.sender = event.params.sender
@@ -330,9 +386,13 @@ export function handleBurn(event: Burn): void {
   burn.amountUSD = amountTotalUSD as BigDecimal;
   burn.save();
 
+  // update the LP position
+  let liquidityPosition = createLiquidityPosition(event.address, burn.sender as Address);
+  createLiquiditySnapshot(liquidityPosition, event);
+
   updatePairDayData(event);
   updatePairHourData(event);
-  updatePancakeDayData(event);
+  updateAthleteXDayData(event);
   updateTokenDayData(token0 as Token, event);
   updateTokenDayData(token1 as Token, event);
 }
@@ -399,17 +459,17 @@ export function handleSwap(event: Swap): void {
   pair.save();
 
   // update global values, only used tracked amounts for volume
-  let pancake = AthleteXFactory.load(FACTORY_ADDRESS);
-  pancake.totalVolumeUSD = pancake.totalVolumeUSD.plus(trackedAmountUSD);
-  pancake.totalVolumeMATIC = pancake.totalVolumeMATIC.plus(trackedAmountMATIC);
-  pancake.untrackedVolumeUSD = pancake.untrackedVolumeUSD.plus(derivedAmountUSD);
-  pancake.totalTransactions = pancake.totalTransactions.plus(ONE_BI);
+  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
+  athleteX.totalVolumeUSD = athleteX.totalVolumeUSD.plus(trackedAmountUSD);
+  athleteX.totalVolumeMATIC = athleteX.totalVolumeMATIC.plus(trackedAmountMATIC);
+  athleteX.untrackedVolumeUSD = athleteX.untrackedVolumeUSD.plus(derivedAmountUSD);
+  athleteX.totalTransactions = athleteX.totalTransactions.plus(ONE_BI);
 
   // save entities
   pair.save();
   token0.save();
   token1.save();
-  pancake.save();
+  athleteX.save();
 
   let transaction = Transaction.load(event.transaction.hash.toHex());
   if (transaction === null) {
@@ -451,15 +511,15 @@ export function handleSwap(event: Swap): void {
   // update day entities
   let pairDayData = updatePairDayData(event);
   let pairHourData = updatePairHourData(event);
-  let pancakeDayData = updatePancakeDayData(event);
+  let athleteXDayData = updateAthleteXDayData(event);
   let token0DayData = updateTokenDayData(token0 as Token, event);
   let token1DayData = updateTokenDayData(token1 as Token, event);
 
   // swap specific updating
-  pancakeDayData.dailyVolumeUSD = pancakeDayData.dailyVolumeUSD.plus(trackedAmountUSD);
-  pancakeDayData.dailyVolumeMATIC = pancakeDayData.dailyVolumeMATIC.plus(trackedAmountMATIC);
-  pancakeDayData.dailyVolumeUntracked = pancakeDayData.dailyVolumeUntracked.plus(derivedAmountUSD);
-  pancakeDayData.save();
+  athleteXDayData.dailyVolumeUSD = athleteXDayData.dailyVolumeUSD.plus(trackedAmountUSD);
+  athleteXDayData.dailyVolumeMATIC = athleteXDayData.dailyVolumeMATIC.plus(trackedAmountMATIC);
+  athleteXDayData.dailyVolumeUntracked = athleteXDayData.dailyVolumeUntracked.plus(derivedAmountUSD);
+  athleteXDayData.save();
 
   // swap specific updating for pair
   pairDayData.dailyVolumeToken0 = pairDayData.dailyVolumeToken0.plus(amount0Total);
